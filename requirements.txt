@@ -1,4 +1,2 @@
-time == 2024.4.5
 telepot == 12.7
 google.generativeai == 0.1.0
-os == 0.1.4
