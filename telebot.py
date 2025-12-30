@@ -5,7 +5,7 @@ import os
 
 # Configure the API key
 genai.configure(api_key=os.getenv("API_KEY"))
-bot_token=os.getenv("BOT_TOKEN")
+bot_token = os.getenv("BOT_TOKEN")
 
 # Initialize the model
 model = genai.GenerativeModel("gemini-2.5-flash")
@@ -28,7 +28,6 @@ def telebot(msg):
                 bot.sendMessage(chat_id, reply)
             except Exception as e:
                 bot.sendMessage(chat_id, "Sorry, I couldn't process your request. Error: " + str(e))
-
 
 bot = telepot.Bot(bot_token)
 bot.message_loop(telebot)
