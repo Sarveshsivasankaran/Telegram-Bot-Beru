@@ -1,2 +1,33 @@
-telepot == 12.7
-google.generativeai == 0.8.5
+# requirements.txt — Telegram Bot Edition (Internet-Enabled)
+# Core AI / LangChain
+langchain
+langchain-core
+langchain-openai
+langchain-ollama
+langchain-postgres
+langchain-community       # Includes DuckDuckGoWrapper
+
+# Telegram
+python-telegram-bot==21.*
+
+# Web server
+fastapi
+uvicorn[standard]
+
+# Database
+psycopg[binary]
+psycopg-pool
+supabase
+
+# OpenAI (for Chat/Vision)
+openai
+
+# Internet Search
+duckduckgo-search
+
+# Voice transcription (AssemblyAI replace Whisper)
+assemblyai
+
+# Utilities
+python-dotenv
+pydantic

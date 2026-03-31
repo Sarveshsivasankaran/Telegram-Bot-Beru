@@ -1,115 +1,53 @@
-<body>
+# 🌒 BERU — Standalone Telegram Bot
 
-  <h1>🤖 Beru – Telegram AI Assistant (Gemini Powered)</h1>
+**Beru** is now a completely independent Telegram bot project. This version is optimized for **Vercel (Serverless)** and **Render (Web Service)**, providing the Shadow Monarch with a persistent memory-driven AI assistant on mobile.
 
-  <p>
-    <strong>Beru</strong> is a lightweight <strong>Telegram bot</strong> powered by
-    <strong>Google Gemini 2.5 Flash</strong>. It responds intelligently to user messages,
-    handles basic commands, and beautifies AI-generated responses before sending them back.
-  </p>
+---
 
-  <p>
-    This is a <strong>functional MVP</strong>, not a demo script.
-  </p>
+## 📸 Vision Features
+Unlike the standard web interface, this standalone bot is specialized for visual missions:
+- **Image Processing**: Send a photo to Beru, and he will analyze it instantly.
+- **Contextual Memory**: Beru remembers your interests and past image-based missions.
 
-  <hr>
+---
 
-  <h2>🚀 Features</h2>
-  <ul>
-    <li>🧠 Powered by Google Gemini 2.5 Flash</li>
-    <li>💬 Telegram integration using telepot</li>
-    <li>👋 Custom greeting & identity commands</li>
-    <li>✨ Auto-beautified AI responses</li>
-    <li>🔐 Secure API keys via environment variables</li>
-  </ul>
+## 🚀 Standalone Deployment
 
-  <hr>
+### 1. Database Setup (Standalone)
+1. Run the SQL in `telegram_bot/schema_telegram.sql` in your Supabase SQL Editor. 
+   - This creates `tg_users`, `tg_sessions`, `tg_user_master_profile`, and `tg_message_store`.
+2. This ensures your Telegram bot data is separated from the web app.
 
-  <h2>🧩 Tech Stack</h2>
-  <ul>
-    <li>Python 3.9+</li>
-    <li>telepot</li>
-    <li>google-generativeai</li>
-    <li>Environment variables for secrets</li>
-  </ul>
+### 2. Deployment (e.g., Vercel / Render)
+1. Point your deployment to this `telegram_bot/` subdirectory.
+2. Install dependencies:
+   ```bash
+   pip install -r telegram_bot/requirements.txt
+   ```
+3. Set your **Environment Variables** (see below).
 
-  <hr>
+### 3. Linking the Webhook (CRITICAL)
+Once your bot is deployed (e.g., `https://beru-ai-bot.onrender.com`), visit:
+`https://your-bot-url.com/api/telegram/setup`
+This will automatically link your Telegram bot to your new server.
 
-  <h2>📁 Project Structure</h2>
-  <pre>
-.
-├── bot.py
-├── README.md
-└── requirements.txt
-  </pre>
+---
 
-  <hr>
+## 🔑 Environment Variables
+Create a `.env` file with these keys (an example is provided in `.env`):
 
-  <h2>📦 Installation</h2>
+- `OPENAI_API_KEY`: Required for Image Vision.
+- `TELEGRAM_BOT_TOKEN`: From @BotFather.
+- `TELEGRAM_WEBHOOK_URL`: Your deployed URL + `/api/telegram/webhook`.
+- `DATABASE_URL`: Postgres connection for chat history.
+- `SUPABASE_URL` & `SUPABASE_SERVICE_KEY`: For session management.
+- `TG_BOT_PORT`: Port to listen on (default 8001).
 
-  <h3>1️⃣ Clone the Repository</h3>
-  <pre>
-git clone https://github.com/your-username/beru-telegram-bot.git
-cd beru-telegram-bot
-  </pre>
+---
 
-  <h3>2️⃣ Install Dependencies</h3>
-  <pre>
-pip install -r requirements.txt
-  </pre>
+## 📜 Commands
+- `/start`: Initiate your mission with Beru.
+- `/help`: Detailed guidance from the Shadow Monarch's loyal assistant.
+- **Simply Send a Photo**: Activate Beru's vision system.
 
-  <hr>
-
-  <h2>🔑 Environment Variables</h2>
-
-  <p>Set the following environment variables:</p>
-
-  <pre>
-export API_KEY="YOUR_GEMINI_API_KEY"
-export BOT_TOKEN="YOUR_TELEGRAM_BOT_TOKEN"
-  </pre>
-
-  <p><strong>Warning:</strong> Never hardcode API keys. That’s amateur hour.</p>
-
-  <hr>
-
-  <h2>▶️ Usage</h2>
-
-  <pre>
-python bot.py
-  </pre>
-
-  <p>Supported interactions:</p>
-  <ul>
-    <li><code>hi</code>, <code>hello</code>, <code>hey</code> → Greeting</li>
-    <li><code>who are you</code> → Identity response</li>
-    <li>Any other text → Processed by Gemini AI</li>
-  </ul>
-
-  <hr>
-
-  <h2>🧠 How It Works</h2>
-  <ol>
-    <li>Telegram receives a message</li>
-    <li>telepot parses message metadata</li>
-    <li>Predefined commands return static replies</li>
-    <li>Other messages are sent to Gemini</li>
-    <li>Gemini response is beautified and returned</li>
-  </ol>
-
-  <hr>
-
-  <h2>📜 requirements.txt</h2>
-  <pre>
-telepot
-google-generativeai
-  </pre>
-
-  <hr>
-
-  <br>
-  <h2>Use the Bot Here👇</h2>
-  <img width="500" height="1000" alt="image" src="https://github.com/user-attachments/assets/8d2c0023-c350-4dde-91da-e87da1a75f2d" />
-  
-</body>
-</html>
+**Arise.** 🐜💜
