@@ -15,28 +15,24 @@ class DatabaseManager:
             if not Config.DATABASE_URL:
                 logger.warning("DATABASE_URL not set. Connection pool disabled.")
                 return None
-            
+
+            # Probe and get effective URL from config
+            conninfo = Config.get_psycopg_database_url()
+            if not conninfo:
+                logger.warning("Postgres pool disabled: no working connection after probe.")
+                return None
+
             try:
-                # Senior Fix: Use the ConnectionPool with a timeout and clear error messages
-                # for common Render/Supabase IPv6 issues.
+                # prepare_threshold=None: required for Supabase pooler / PgBouncer transaction mode
                 cls._pool = ConnectionPool(
-                    conninfo=Config.DATABASE_URL,
+                    conninfo=conninfo,
                     min_size=Config.DB_POOL_MIN,
                     max_size=Config.DB_POOL_MAX,
-                    kwargs={
-                        "autocommit": True,
-                        "prepare_threshold": 0,
-                        "connect_timeout": 10
-                    }
+                    kwargs=Config.psycopg_connect_kwargs(),
                 )
                 logger.info("Database connection pool initialized.")
             except Exception as e:
-                error_msg = str(e)
-                if "Network is unreachable" in error_msg:
-                    logger.error("🛑 SHADOW REALM ERROR: Network is unreachable (IPv6 issue).")
-                    logger.error("💡 TIP: Render uses IPv4. Switch your DATABASE_URL to use the Supabase Pooler (Port 6543).")
-                else:
-                    logger.error(f"Failed to initialize database pool: {e}")
+                logger.error(f"Failed to initialize database pool: {e}")
                 return None
         return cls._pool
 

@@ -5,7 +5,7 @@ langchain-core
 langchain-openai
 langchain-ollama
 langchain-postgres
-langchain-community       # Includes DuckDuckGoWrapper
+langchain-community
 
 # Telegram
 python-telegram-bot==21.*
@@ -25,7 +25,7 @@ openai
 # Internet Search
 duckduckgo-search
 
-# Voice transcription (AssemblyAI replace Whisper)
+# Voice transcription
 assemblyai
 
 # Utilities
