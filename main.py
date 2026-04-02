@@ -12,6 +12,7 @@ import asyncio
 import json
 import base64
 import tempfile
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional, Dict, Set
 
@@ -412,28 +413,14 @@ def build_telegram_app() -> Application:
     return app
 
 
-# ─── FastAPI Webhook Server ───────────────────────────────────────────────────
-web_app = FastAPI(title="BERU - Telegram AI Assistant")
-telegram_app: Optional[Application] = None
-
-@web_app.get("/")
-async def health_check():
-    return {"status": "online", "service": "BERU - Telegram AI Assistant"}
-
-@web_app.post("/webhook")
-async def telegram_webhook(request: Request):
-    try:
-        data = await request.json()
-        update = Update.de_json(data, telegram_app.bot)
-        await telegram_app.process_update(update)
-    except Exception as e:
-        logger.error(f"Webhook processing error: {e}")
-    return Response(status_code=200)
-
-@web_app.on_event("startup")
-async def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Handle startup and shutdown events using the modern lifespan protocol.
+    """
     global beru, telegram_app
     
+    # ─── STARTUP ─────────────────────────────────────────────────────────────
     # Init DB schema
     if Config.DATABASE_URL:
         db_url = Config.get_psycopg_database_url()
@@ -467,14 +454,41 @@ async def on_startup():
     ])
     logger.info("BERU is online.")
 
-@web_app.on_event("shutdown")
-async def on_shutdown():
+    yield
+
+    # ─── SHUTDOWN ────────────────────────────────────────────────────────────
     if telegram_app:
         if Config.RUN_MODE == "polling":
             if telegram_app.updater and telegram_app.updater.running: await telegram_app.updater.stop()
             if telegram_app.running: await telegram_app.stop()
         await telegram_app.shutdown()
     DatabaseManager.close_pool()
+    logger.info("BERU is offline.")
+
+
+# ─── FastAPI Webhook Server ───────────────────────────────────────────────────
+web_app = FastAPI(
+    title="BERU - Telegram AI Assistant",
+    lifespan=lifespan,
+)
+telegram_app: Optional[Application] = None
+
+
+@web_app.get("/")
+async def health_check():
+    return {"status": "online", "service": "BERU - Telegram AI Assistant"}
+
+
+@web_app.post("/webhook")
+async def telegram_webhook(request: Request):
+    try:
+        data = await request.json()
+        update = Update.de_json(data, telegram_app.bot)
+        await telegram_app.process_update(update)
+    except Exception as e:
+        logger.error(f"Webhook processing error: {e}")
+    return Response(status_code=200)
+
 
 if __name__ == "__main__":
     uvicorn.run(web_app, host=Config.HOST, port=Config.PORT)

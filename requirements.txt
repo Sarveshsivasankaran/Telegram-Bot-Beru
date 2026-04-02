@@ -23,7 +23,7 @@ supabase
 openai
 
 # Internet Search
-duckduckgo-search
+duckduckgo-search>=6.0.0
 
 # Voice transcription
 assemblyai

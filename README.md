@@ -1,53 +1,60 @@
-# 🌒 BERU — Standalone Telegram Bot
+# 🌒 BERU — Telegram AI Assistant (Shadow Realm Edition)
 
-**Beru** is now a completely independent Telegram bot project. This version is optimized for **Vercel (Serverless)** and **Render (Web Service)**, providing the Shadow Monarch with a persistent memory-driven AI assistant on mobile.
-
----
-
-## 📸 Vision Features
-Unlike the standard web interface, this standalone bot is specialized for visual missions:
-- **Image Processing**: Send a photo to Beru, and he will analyze it instantly.
-- **Contextual Memory**: Beru remembers your interests and past image-based missions.
+**Beru** is a powerful, standalone Telegram bot powered by **LangChain**, designed for the Shadow Monarch. It features persistent chat history, image vision analysis, and voice transcription, deployed as a robust web service.
 
 ---
 
-## 🚀 Standalone Deployment
+## 📸 Core Features
 
-### 1. Database Setup (Standalone)
-1. Run the SQL in `telegram_bot/schema_telegram.sql` in your Supabase SQL Editor. 
-   - This creates `tg_users`, `tg_sessions`, `tg_user_master_profile`, and `tg_message_store`.
-2. This ensures your Telegram bot data is separated from the web app.
-
-### 2. Deployment (e.g., Vercel / Render)
-1. Point your deployment to this `telegram_bot/` subdirectory.
-2. Install dependencies:
-   ```bash
-   pip install -r telegram_bot/requirements.txt
-   ```
-3. Set your **Environment Variables** (see below).
-
-### 3. Linking the Webhook (CRITICAL)
-Once your bot is deployed (e.g., `https://beru-ai-bot.onrender.com`), visit:
-`https://your-bot-url.com/api/telegram/setup`
-This will automatically link your Telegram bot to your new server.
+- **🧠 Persistent Memory**: Remembers your conversations across sessions using Supabase and LangChain's `PostgresChatMessageHistory`.
+- **🖼️ Vision Analysis**: Send any image, and Beru will analyze it using GPT-4o Vision or local vision models.
+- **🎤 Voice Transcription**: Send a voice message, and Beru will transcribe it using **AssemblyAI** before responding.
+- **🔍 Internet Intelligence**: Integrated with **DuckDuckGo Search** for real-time information retrieval.
+- **🤖 Model Switching**: Swap between cloud models (GPT-4o, GPT-3.5) or local models (Llama 3.2 via Ollama) on the fly.
+- **🕶️ Incognito Mode**: Chat privately without updating your user profile in the database.
 
 ---
 
-## 🔑 Environment Variables
-Create a `.env` file with these keys (an example is provided in `.env`):
+## 🚀 Quick Deployment (Render)
 
-- `OPENAI_API_KEY`: Required for Image Vision.
-- `TELEGRAM_BOT_TOKEN`: From @BotFather.
-- `TELEGRAM_WEBHOOK_URL`: Your deployed URL + `/api/telegram/webhook`.
-- `DATABASE_URL`: Postgres connection for chat history.
-- `SUPABASE_URL` & `SUPABASE_SERVICE_KEY`: For session management.
-- `TG_BOT_PORT`: Port to listen on (default 8001).
+### 1. Database Setup
+Execute the SQL in `tg_users.sql` in your **Supabase SQL Editor**:
+- This creates the `tg_users` table for user metadata.
+- This creates the `tg_message_store` table for chat history persistence.
+
+### 2. Render Web Service Deployment
+1. Connect your repository to **Render**.
+2. Select **Web Service**.
+3. Use the following configuration:
+   - **Runtime**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `python main.py`
+   - **Environment Variables**: Add the keys from your `.env` (see below).
+
+---
+
+## 🔑 Key Configuration (.env)
+
+| Variable | Description |
+| :--- | :--- |
+| `TELEGRAM_BOT_TOKEN` | Your bot token from @BotFather. |
+| `WEBHOOK_URL` | Your Render URL (e.g., `https://beru-bot.onrender.com`). |
+| `DATABASE_URL` | Your Supabase Postgres connection string (Port 6543 for pooler). |
+| `SUPABASE_URL` | Your Supabase Project API URL. |
+| `SUPABASE_SERVICE_KEY` | Your Supabase `service_role` key. |
+| `OPENAI_API_KEY` | (Optional) For GPT-4o and Vision features. |
+| `ASSEMBLYAI_API_KEY` | (Optional) For high-quality voice transcription. |
+| `OLLAMA_HOST` | (Optional) For connecting to a local Ollama instance. |
 
 ---
 
 ## 📜 Commands
+
 - `/start`: Initiate your mission with Beru.
-- `/help`: Detailed guidance from the Shadow Monarch's loyal assistant.
-- **Simply Send a Photo**: Activate Beru's vision system.
+- `/model`: 🤖 Switch between available AI models (GPT-4o, GPT-4o Mini, GPT-3.5 Turbo).
+- `/profile`: 🧠 View your saved profile information from the Shadow Realm.
+- `/incognito`: 🕶️ Toggle private mode (no user metadata updates).
+- `/clear`: 🧹 Wipe your current chat history from the persistent store.
+- `/help`: ❓ Get a detailed list of all commands.
 
 **Arise.** 🐜💜
