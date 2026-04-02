@@ -4,8 +4,8 @@ langchain
 langchain-core
 langchain-openai
 langchain-ollama
-langchain-postgres
 langchain-community
+langchain-postgres
 
 # Telegram
 python-telegram-bot==21.*
@@ -23,7 +23,7 @@ supabase
 openai
 
 # Internet Search
-duckduckgo-search>=6.0.0
+ddgs
 
 # Voice transcription
 assemblyai
