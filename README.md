@@ -1,6 +1,9 @@
 # 🌒 BERU — Telegram AI Assistant (Shadow Realm Edition)
 
-![Telegram Bot QR Code](bot_qr.jpg)
+<div style="text-align: center;">
+  <img src="https://github.com/user-attachments/assets/4bbf92fa-c183-4935-8bbc-81dae3778c7b" 
+       width="500" height="500" alt="Telegram QR">
+</div>
 
 **[🔗 Chat with Beru on Telegram](https://t.me/MATSARBOT)**
 
