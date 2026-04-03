@@ -78,8 +78,8 @@ async def transcribe_audio(file_path: str) -> str:
             language_detection=True
         )
         
-        transcriber = aai.Transcriber()
-        transcript = await asyncio.to_thread(transcriber.transcribe, file_path, config=config)
+        transcriber = aai.Transcriber(config=config)
+        transcript = await asyncio.to_thread(transcriber.transcribe, file_path)
         if transcript.status == aai.TranscriptStatus.error:
             logger.error(f"AssemblyAI Transcription Error: {transcript.error}")
             return ""
