@@ -70,7 +70,14 @@ async def transcribe_audio(file_path: str) -> str:
     try:
         import assemblyai as aai
         aai.settings.api_key = Config.ASSEMBLYAI_API_KEY
-        config = aai.TranscriptionConfig(speech_model=aai.SpeechModel.best)
+        
+        # Using 'nano' model for faster, more cost-effective transcriptions for short bot clips
+        # While 'best' is high quality, 'nano' is often sufficient and much faster for Telegram
+        config = aai.TranscriptionConfig(
+            speech_model=aai.SpeechModel.nano,
+            language_detection=True
+        )
+        
         transcriber = aai.Transcriber()
         transcript = await asyncio.to_thread(transcriber.transcribe, file_path, config=config)
         if transcript.status == aai.TranscriptStatus.error:
@@ -358,23 +365,41 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Something went wrong. Please try again.")
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle voice messages and round video notes."""
+    # Handle both voice and video_note
+    media = update.message.voice or update.message.video_note
+    if not media:
+        return
+
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
+    
     try:
-        voice_file = await context.bot.get_file(update.message.voice.file_id)
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".ogg") as tmp:
-            await voice_file.download_to_drive(tmp.name)
+        file_id = media.file_id
+        file_ext = ".ogg" if update.message.voice else ".mp4"
+        
+        file_obj = await context.bot.get_file(file_id)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp:
+            await file_obj.download_to_drive(tmp.name)
             temp_path = tmp.name
+
         transcript_text = await transcribe_audio(temp_path)
-        os.remove(temp_path)
+        
+        # Cleanup file immediately after transcription attempt
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
         if not transcript_text:
-            await update.message.reply_text("🎤 Could not transcribe voice message.")
+            await update.message.reply_text("🎤 I heard you, My Lord, but I could not decipher the speech. Could you try again?")
             return
+
+        # Update message text so handle_text can process it as the user's input
         await update.message.reply_text(f"🎤 *Transcribed:* _{transcript_text}_", parse_mode=ParseMode.MARKDOWN)
         update.message.text = transcript_text
         await handle_text(update, context)
+        
     except Exception as e:
-        logger.error(f"handle_voice error: {e}")
-        await update.message.reply_text("⚠️ Voice recognition failed.")
+        logger.error(f"handle_voice/video error: {e}")
+        await update.message.reply_text("⚠️ Transcription protocol failed, My Lord.")
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -408,7 +433,7 @@ def build_telegram_app() -> Application:
     app.add_handler(CommandHandler("clear", cmd_clear))
     app.add_handler(CallbackQueryHandler(callback_model, pattern=r"^model:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
-    app.add_handler(MessageHandler(filters.VOICE, handle_voice))
+    app.add_handler(MessageHandler(filters.VOICE | filters.VIDEO_NOTE, handle_voice))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     return app
 
