@@ -72,9 +72,9 @@ async def transcribe_audio(file_path: str) -> str:
         aai.settings.api_key = Config.ASSEMBLYAI_API_KEY
         
         # Using 'nano' model for faster, more cost-effective transcriptions for short bot clips
-        # While 'best' is high quality, 'nano' is often sufficient and much faster for Telegram
+        # Note: 'speech_models' is now plural and expects a list as per latest API updates
         config = aai.TranscriptionConfig(
-            speech_model=aai.SpeechModel.nano,
+            speech_models=[aai.SpeechModel.nano],
             language_detection=True
         )
         
