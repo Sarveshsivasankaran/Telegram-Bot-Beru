@@ -1,5 +1,9 @@
 # 🌒 BERU — Telegram AI Assistant (Shadow Realm Edition)
 
+![Telegram Bot QR Code](bot_qr.jpg)
+
+**[🔗 Chat with Beru on Telegram](https://t.me/MATSARBOT)**
+
 **Beru** is a powerful, standalone Telegram bot powered by **LangChain**, designed for the Shadow Monarch. It features persistent chat history, image vision analysis, and voice/video transcription, deployed as a robust web service.
 
 ---
