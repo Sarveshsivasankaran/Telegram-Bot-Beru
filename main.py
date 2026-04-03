@@ -71,10 +71,10 @@ async def transcribe_audio(file_path: str) -> str:
         import assemblyai as aai
         aai.settings.api_key = Config.ASSEMBLYAI_API_KEY
         
-        # Using 'nano' model for faster, more cost-effective transcriptions for short bot clips
-        # Note: 'speech_models' is now plural and expects a list as per latest API updates
+        # Using 'universal-3-pro' for high accuracy and the latest API support
+        # Note: 'speech_models' must be a list containing one of: "universal-3-pro", "universal-2"
         config = aai.TranscriptionConfig(
-            speech_models=[aai.SpeechModel.nano],
+            speech_models=["universal-3-pro"],
             language_detection=True
         )
         
@@ -352,13 +352,19 @@ async def callback_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ─── Message Handlers ─────────────────────────────────────────────────────────
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str = None):
     user = update.effective_user
     sid = f"tg_{user.id}"
     model = user_models.get(str(user.id))
+    
+    # Use provided text (e.g. from transcription) or fallback to message text
+    input_text = text or update.message.text
+    if not input_text:
+        return
+
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
     try:
-        response = await beru.get_response(update.message.text, sid, model_name=model)
+        response = await beru.get_response(input_text, sid, model_name=model)
         await send_long(update, response)
     except Exception as e:
         logger.error(f"handle_text error: {e}")
@@ -394,8 +400,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Update message text so handle_text can process it as the user's input
         await update.message.reply_text(f"🎤 *Transcribed:* _{transcript_text}_", parse_mode=ParseMode.MARKDOWN)
-        update.message.text = transcript_text
-        await handle_text(update, context)
+        await handle_text(update, context, text=transcript_text)
         
     except Exception as e:
         logger.error(f"handle_voice/video error: {e}")
