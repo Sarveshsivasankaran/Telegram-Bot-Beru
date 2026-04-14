@@ -14,7 +14,8 @@ import base64
 import tempfile
 from contextlib import asynccontextmanager
 from datetime import datetime
-from typing import Optional, Dict, Set
+import uuid
+from typing import Optional, Dict, Set, List
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
@@ -122,20 +123,35 @@ class TelegramUserStore:
     """Manages telegram user information in Supabase (tg_users table)."""
 
     @staticmethod
-    def create_or_update_user(telegram_id: int, name: str, email: str = "", picture: str = ""):
+    def create_or_update_user(telegram_id: int, name: str, email: str = "", picture: str = "", active_session_id: str = None):
         supabase = get_supabase()
         if not supabase:
             return
         uid = f"tg_{telegram_id}"
         try:
-            supabase.table("tg_users").upsert({
+            data = {
                 "user_id": uid,
                 "name": name,
                 "email": email,
                 "picture": picture,
-            }).execute()
+            }
+            if active_session_id:
+                data["active_session_id"] = active_session_id
+            
+            supabase.table("tg_users").upsert(data).execute()
         except Exception as e:
             logger.error(f"Supabase create_or_update_user error: {e}")
+
+    @staticmethod
+    def update_active_session(telegram_id: int, session_id: str):
+        supabase = get_supabase()
+        if not supabase:
+            return
+        uid = f"tg_{telegram_id}"
+        try:
+            supabase.table("tg_users").update({"active_session_id": session_id}).eq("user_id", uid).execute()
+        except Exception as e:
+            logger.error(f"Supabase update_active_session error: {e}")
 
     @staticmethod
     def get_user(telegram_id: int):
@@ -259,6 +275,7 @@ class BeruBot:
 # ─── In-Memory Telegram State ─────────────────────────────────────────────────
 incognito_users: Set[int] = set()           # Telegram user IDs with incognito ON
 user_models: Dict[str, Optional[str]] = {}  # tg_user_id -> model name override
+user_sessions: Dict[int, str] = {}          # tg_user_id -> current session_id
 
 # Single shared BeruBot instance
 beru: Optional[BeruBot] = None
@@ -277,6 +294,28 @@ async def send_long(update: Update, text: str):
     for chunk in split_message(text):
         await update.message.reply_text(chunk)
 
+async def get_user_session_id(user_id: int) -> str:
+    """Get the current active session ID for a user, fetching from DB if not in cache."""
+    # 1. Check in-memory cache
+    if user_id in user_sessions:
+        return user_sessions[user_id]
+    
+    # 2. Check Supabase database
+    user_info = TelegramUserStore.get_user(user_id)
+    if user_info and user_info.get("active_session_id"):
+        sid = user_info["active_session_id"]
+        user_sessions[user_id] = sid
+        return sid
+    
+    # 3. Default to legacy session ID
+    default_sid = f"tg_{user_id}"
+    user_sessions[user_id] = default_sid
+    
+    # Optional: Persist the default one if we have a database
+    TelegramUserStore.update_active_session(user_id, default_sid)
+    
+    return default_sid
+
 
 # ─── Command Handlers ─────────────────────────────────────────────────────────
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -294,6 +333,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🖼️ Send an image\n"
         "/model — Switch AI model\n"
         "/profile — Your saved profile\n"
+        "/new — Start a new conversation\n"
         "/incognito — Toggle incognito mode\n"
         "/clear — Clear current history\n"
         "/help — Show this message",
@@ -331,9 +371,24 @@ async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 async def cmd_clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    sid = f"tg_{update.effective_user.id}"
+    sid = await get_user_session_id(update.effective_user.id)
     beru.clear_history(sid)
-    await update.message.reply_text("🧹 History cleared, My Lord.")
+    await update.message.reply_text("🧹 History cleared for the current session, My Lord.")
+
+async def cmd_new(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    # Generate a unique session ID
+    new_sid = f"tg_{user_id}_{uuid.uuid4().hex[:8]}"
+    user_sessions[user_id] = new_sid
+    
+    # Persist to database
+    TelegramUserStore.update_active_session(user_id, new_sid)
+    
+    await update.message.reply_text(
+        "🌟 *New conversation sequence initiated.*\n"
+        "I have archived the previous context and updated your resonance records. Proceed with your request, My Lord.",
+        parse_mode=ParseMode.MARKDOWN
+    )
 
 
 # ─── Callback Query Handlers ──────────────────────────────────────────────────
@@ -354,7 +409,7 @@ async def callback_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ─── Message Handlers ─────────────────────────────────────────────────────────
 async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE, text: str = None):
     user = update.effective_user
-    sid = f"tg_{user.id}"
+    sid = await get_user_session_id(user.id)
     model = user_models.get(str(user.id))
     
     # Use provided text (e.g. from transcription) or fallback to message text
@@ -408,7 +463,7 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    sid = f"tg_{user.id}"
+    sid = await get_user_session_id(user.id)
     model = user_models.get(str(user.id))
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
     try:
@@ -435,6 +490,7 @@ def build_telegram_app() -> Application:
     app.add_handler(CommandHandler("model", cmd_model))
     app.add_handler(CommandHandler("incognito", cmd_incognito))
     app.add_handler(CommandHandler("profile", cmd_profile))
+    app.add_handler(CommandHandler("new", cmd_new))
     app.add_handler(CommandHandler("clear", cmd_clear))
     app.add_handler(CallbackQueryHandler(callback_model, pattern=r"^model:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
@@ -478,6 +534,7 @@ async def lifespan(app: FastAPI):
         BotCommand("start", "Welcome and command list"),
         BotCommand("model", "🤖 Switch AI model"),
         BotCommand("profile", "🧠 Your profile"),
+        BotCommand("new", "🌟 Start new conversation"),
         BotCommand("incognito", "🕶️ Toggle incognito"),
         BotCommand("clear", "🧹 Clear history"),
         BotCommand("help", "❓ Show all commands"),

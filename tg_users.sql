@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS tg_users (
     name TEXT,
     email TEXT,
     picture TEXT,
+    active_session_id TEXT, -- Tracks the current conversation session
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
