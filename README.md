@@ -2,68 +2,95 @@
 
 <p align="center">
   <a href="https://t.me/MATSARBOT">
-    <img src="https://github.com/user-attachments/assets/4bbf92fa-c183-4935-8bbc-81dae3778c7b" width="350" alt="Telegram QR">
+    <img src="https://github.com/user-attachments/assets/4bbf92fa-c183-4935-8bbc-81dae3778c7b" width="300" alt="Beru AI">
   </a>
   <br>
-  <b><a href="https://t.me/MATSARBOT">🔗 Chat with Beru on Telegram</a></b>
+  <b><a href="https://t.me/MATSARBOT">🔗 Arise & Command Beru on Telegram</a></b>
 </p>
 
-**Beru** is a powerful, standalone Telegram bot powered by **LangChain**, designed for the Shadow Monarch. It features persistent chat history, image vision analysis, and voice/video transcription, deployed as a robust web service.
+---
+
+## 🐲 Overview
+
+**Beru** is an advanced, production-ready Telegram bot powered by **LangChain** and **OpenAI**. Inspired by the Shadow Monarch's loyal marshal, this assistant provides intelligent conversation, real-time web search, visual recognition, and high-fidelity speech-to-text transcription. It is built to be resilient, featuring persistent memory and multi-model support.
 
 ---
 
-## 📸 Core Features
+## 🛠️ Technical Stack
 
-- **🧠 Persistent Memory**: Remembers your conversations across sessions using Supabase/Postgres and LangChain's `PostgresChatMessageHistory`.
-- **🖼️ Vision Analysis**: Send any image, and Beru will analyze it using GPT-4o Vision.
-- **🎤 Speech Recognition**: Supports **Voice Messages** and **Round Video Notes**. Transcribed using **AssemblyAI (Universal-3-Pro)** with automatic language detection.
-- **🔍 Internet Intelligence**: Integrated with **DuckDuckGo Search** for real-time information retrieval (Beru searches the web for you).
-- **🤖 Model Switching**: Swap between cloud models (GPT-4o, GPT-4o Mini) on the fly via a sleek inline menu.
+- **Framework**: [FastAPI](https://fastapi.tiangolo.com/) (Webhook Server)
+- **AI Engine**: [LangChain](https://www.langchain.com/) (Agentic Workflows)
+- **Models**: GPT-4o, GPT-4o Mini, GPT-3.5 Turbo (Cloud) | Ollama (Local)
+- **Database**: [Supabase](https://supabase.com/) / [PostgreSQL](https://www.postgresql.org/) (Persistent History & User Profiles)
+- **Transcription**: [AssemblyAI Universal-3-Pro](https://www.assemblyai.com/)
+- **Search**: DuckDuckGo Search API
+- **Language**: Python 3.10+
+
+---
+
+## ✨ Core Features
+
+- **🧠 Persistent Memory**: Remembers your conversations across sessions using PostgreSQL. Context is maintained even if the server restarts.
+- **🔍 Internet Intelligence**: Integrated with **Duckduckgo Search** to provide real-time facts and answer questions about modern events.
+- **🖼️ Vision Analysis**: Send any image, and Beru will provide a detailed analysis using GPT-4o's vision capabilities.
+- **🎤 Universal Speech Recognition**: Send **Voice Messages** or **Round Video Notes**. Beru transcribes them instantly with high accuracy.
+- **🤖 Model Switching**: On-the-fly switching between AI models via an interactive inline menu.
 - **🕶️ Incognito Mode**: Chat privately without updating your user profile in the database.
-- **🚀 FAST & Modern**: Built with **FastAPI** using the latest `lifespan` protocol for reliable startup/shutdown behavior.
-
----
-
-## 🚀 Quick Deployment (Render)
-
-### 1. Database Setup
-Execute the SQL in `tg_users.sql` in your **Supabase SQL Editor**:
-- **Table:** `tg_users` — Stores user metadata (name, email, profile status).
-- **Table:** `tg_message_store` — Stores the raw LangChain message history.
-
-### 2. Render Web Service Deployment
-1. Connect your repository to **Render**.
-2. Select **Web Service**.
-3. Use the following configuration:
-   - **Runtime**: `Python 3`
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `python main.py`
-   - **Environment Variables**: Add the keys from your `.env` (see below).
-
----
-
-## 🔑 Key Configuration (.env)
-
-| Variable | Description |
-| :--- | :--- |
-| `TELEGRAM_BOT_TOKEN` | Your bot token from @BotFather. |
-| `WEBHOOK_URL` | Your Render URL (e.g., `https://telegram-bot-beru.onrender.com`). |
-| `DATABASE_URL` | Your Supabase Postgres connection string (Port 6543 for pooler). |
-| `SUPABASE_URL` | Your Supabase Project API URL. |
-| `SUPABASE_SERVICE_KEY` | Your Supabase `service_role` key (for user profile management). |
-| `OPENAI_API_KEY` | (Required) For GPT-4o and Vision features. |
-| `ASSEMBLYAI_API_KEY` | (Required) For high-quality voice/video transcription. |
-| `RUN_MODE` | Set to `webhook` for production (Render) or `polling` for local testing. |
+- **🌟 Session Management**: Start fresh conversations anytime using `/new` to archive old context.
 
 ---
 
 ## 📜 Commands
 
-- `/start`: Initiate your mission with Beru and register your user profile.
-- `/model`: 🤖 Switch between available AI models (GPT-4o, GPT-4o Mini, GPT-3.5 Turbo).
-- `/profile`: 🧠 View your saved profile information from the Shadow Realm.
-- `/incognito`: 🕶️ Toggle private mode (no user metadata updates).
-- `/clear`: 🧹 Wipe your current chat history from the persistent store.
-- `/help`: ❓ Get a detailed list of all commands.
+| Command | Action |
+| :--- | :--- |
+| `/start` | Welcome message and list of available powers. |
+| `/model` | 🤖 Switch between GPT-4o, Mini, and Default models. |
+| `/new` | 🌟 Start a fresh conversation (archives current context). |
+| `/profile` | 🧠 View your saved profile data from the Shadow Realm. |
+| `/incognito`| 🕶️ Toggle private mode (no user metadata tracking). |
+| `/clear` | 🧹 Wipe the current session's chat history. |
+| `/help` | ❓ Get detailed command descriptions. |
+
+---
+
+## 🚀 Setup & Deployment
+
+### 1. Prerequisite: Database
+Execute the SQL in `tg_users.sql` in your **Supabase SQL Editor** to initialize the following:
+- `tg_users`: User metadata (name, email, profile status).
+- `tg_message_store`: Raw LangChain message history.
+
+### 2. Environment Variables (`.env`)
+Create a `.env` file with the following keys:
+
+```env
+TELEGRAM_BOT_TOKEN=your_token
+WEBHOOK_URL=https://your-app.onrender.com
+DATABASE_URL=postgresql://postgres.ref:password@host:6543/postgres?sslmode=require
+OPENAI_API_KEY=sk-proj-...
+ASSEMBLYAI_API_KEY=your_key
+RUN_MODE=webhook  # Use 'polling' for local development
+```
+
+### 3. Deploy to Render
+1. Connect your GitHub repository to **Render**.
+2. Select **Web Service**.
+3. **Runtime**: `Python 3`
+4. **Build Command**: `pip install -r requirements.txt`
+5. **Start Command**: `python main.py`
+
+---
+
+## 💻 Local Development
+
+For testing without a public URL:
+1. Install dependencies: `pip install -r requirements.txt`
+2. Set `RUN_MODE=polling` in `.env`.
+3. Run the application: `python main.py`
+4. The bot will now listen for messages directly from Telegram servers.
+
+---
 
 **Arise.** 🐜💜
+
