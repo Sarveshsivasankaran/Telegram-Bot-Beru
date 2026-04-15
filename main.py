@@ -186,29 +186,33 @@ class BeruBot:
         self.search_tool = DuckDuckGoSearchRun()
 
     def _get_session_history(self, session_id: str):
-        pg_url = Config.get_psycopg_database_url()
-        if not pg_url:
+        # 1. Try to use the Postgres connection pool
+        pool = DatabaseManager.get_pool()
+        if pool:
+            try:
+                # PostgresChatMessageHistory from langchain_postgres supports pools!
+                return PostgresChatMessageHistory(
+                    table_name="tg_message_store",
+                    session_id=session_id,
+                    pool=pool,
+                )
+            except Exception as e:
+                logger.error(f"Failed to initialize Postgres history for {session_id}: {e}")
+
+        # 2. Fallback to in-memory history if DB is unavailable
+        # We use a global cache to ensure the history persists within the same process
+        if session_id not in volatile_histories:
             from langchain_community.chat_message_histories import ChatMessageHistory
-            return ChatMessageHistory()
-        try:
-            conn = psycopg.connect(
-                pg_url,
-                **Config.psycopg_connect_kwargs(),
-            )
-            return PostgresChatMessageHistory(
-                "tg_message_store",
-                session_id,
-                sync_connection=conn,
-            )
-        except Exception as e:
-            logger.error(f"Postgres history connection failed: {e}. Using volatile history.")
-            from langchain_community.chat_message_histories import ChatMessageHistory
-            return ChatMessageHistory()
+            volatile_histories[session_id] = ChatMessageHistory()
+            logger.warning(f"Using volatile history for session {session_id}")
+        
+        return volatile_histories[session_id]
 
     async def get_response(
         self,
         message: str,
         session_id: str,
+        user_name: str = None,
         image_base64: str = None,
         model_name: str = None,
     ) -> str:
@@ -226,6 +230,8 @@ class BeruBot:
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         system_msg = BERU_SYSTEM_PROMPT + f"\n[Current Time: {now}]"
+        if user_name:
+            system_msg += f"\n[User: {user_name}]"
         
         tools = [self.search_tool]
 
@@ -276,6 +282,7 @@ class BeruBot:
 incognito_users: Set[int] = set()           # Telegram user IDs with incognito ON
 user_models: Dict[str, Optional[str]] = {}  # tg_user_id -> model name override
 user_sessions: Dict[int, str] = {}          # tg_user_id -> current session_id
+volatile_histories: Dict[str, any] = {}     # session_id -> ChatMessageHistory (process local fallback)
 
 # Single shared BeruBot instance
 beru: Optional[BeruBot] = None
@@ -419,7 +426,16 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE, text: 
 
     await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
     try:
-        response = await beru.get_response(input_text, sid, model_name=model)
+        # Fetch user profile to maintain "memory" of who the user is
+        user_info = TelegramUserStore.get_user(user.id)
+        user_display = user_info.get("name") if user_info else telegram_user_display_name(user)
+
+        response = await beru.get_response(
+            input_text, 
+            sid, 
+            user_name=user_display,
+            model_name=model
+        )
         await send_long(update, response)
     except Exception as e:
         logger.error(f"handle_text error: {e}")
@@ -474,8 +490,17 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with open(temp_path, "rb") as f:
             image_base64 = base64.b64encode(f.read()).decode()
         os.remove(temp_path)
-        caption = update.message.caption or "Analyze this image."
-        response = await beru.get_response(caption, sid, image_base64=image_base64, model_name=model)
+        # Fetch user profile to maintain "memory" of who the user is
+        user_info = TelegramUserStore.get_user(user.id)
+        user_display = user_info.get("name") if user_info else telegram_user_display_name(user)
+
+        response = await beru.get_response(
+            caption, 
+            sid, 
+            user_name=user_display,
+            image_base64=image_base64, 
+            model_name=model
+        )
         await send_long(update, response)
     except Exception as e:
         logger.error(f"handle_photo error: {e}")
