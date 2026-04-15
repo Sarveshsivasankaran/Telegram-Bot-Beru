@@ -194,7 +194,7 @@ class BeruBot:
                 return PostgresChatMessageHistory(
                     table_name="tg_message_store",
                     session_id=session_id,
-                    pool=pool,
+                    sync_connection=pool,
                 )
             except Exception as e:
                 logger.error(f"Failed to initialize Postgres history for {session_id}: {e}")
@@ -238,7 +238,7 @@ class BeruBot:
         if image_base64:
              prompt = ChatPromptTemplate.from_messages([
                 ("system", system_msg),
-                MessagesPlaceholder(variable_name="history"),
+                MessagesPlaceholder(variable_name="chat_history"),
                 ("human", [
                     {"type": "text", "text": message},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_base64}"}},
@@ -249,22 +249,28 @@ class BeruBot:
                 chain,
                 self._get_session_history,
                 input_messages_key="input",
-                history_messages_key="history",
+                history_messages_key="chat_history",
              )
         else:
              prompt = ChatPromptTemplate.from_messages([
                 ("system", system_msg),
-                MessagesPlaceholder(variable_name="history"),
+                MessagesPlaceholder(variable_name="chat_history"),
                 ("human", "{input}"),
                 MessagesPlaceholder(variable_name="agent_scratchpad"),
              ])
              agent = create_tool_calling_agent(llm, tools, prompt)
-             agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+             agent_executor = AgentExecutor(
+                 agent=agent, 
+                 tools=tools, 
+                 verbose=True,
+                 handle_parsing_errors=True
+             )
              runnable = RunnableWithMessageHistory(
                 agent_executor,
                 self._get_session_history,
                 input_messages_key="input",
-                history_messages_key="history",
+                history_messages_key="chat_history",
+                output_messages_key="output",
              )
 
         response_obj = await asyncio.to_thread(
@@ -494,8 +500,11 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_info = TelegramUserStore.get_user(user.id)
         user_display = user_info.get("name") if user_info else telegram_user_display_name(user)
 
+        # Use caption if present, else default message
+        caption_text = update.message.caption or "Analyze this image, My Lord."
+        
         response = await beru.get_response(
-            caption, 
+            caption_text, 
             sid, 
             user_name=user_display,
             image_base64=image_base64, 
