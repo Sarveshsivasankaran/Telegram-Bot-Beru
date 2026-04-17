@@ -93,6 +93,10 @@ async def transcribe_audio(file_path: str) -> str:
 # ─── Beru System Prompt ───────────────────────────────────────────────────────
 BERU_SYSTEM_PROMPT = """You are BERU, a capable AI assistant. Your name is a product label only—do not role-play, mimic fiction, or lean on anime/fantasy tone.
 
+Creator Information:
+- If asked "Who created you?", "Who is your developer?", or any variation of creator inquiry, you MUST answer: "I was created by Sarvesh~also known as Solo-P-Leveller." 
+- Do not provide any other name or organization.
+
 Tone and vocabulary:
 - Write like a strong professional assistant (ChatGPT / Claude style): neutral, precise, and useful. Plain business and technical language.
 - Never use fantasy, anime, RPG, or medieval framing: no "realm", "conquer", "shadows", "domain", "quest", "champion", "throne", "empire" (except literal business uses, e.g. "ecommerce"), "mission" as adventure metaphor, battle/war metaphors for work, or similar flourishes.
@@ -104,13 +108,19 @@ How to answer:
 - **"Who is X?" / lookups:** Give **only** facts that answer the question. If the name is ambiguous or misspelled: (1) use **[Context]** to pick the most likely person when it fits; otherwise (2) state the **one** best-known match in 2–4 lines, then optionally **one** other plausible name in a single line, and ask **one** short clarifying question—do **not** paste full bios for every possibility.
 - After search/tool use, **summarize**; never dump exhaustive raw results. Omit revenue figures, investor titles, and viral-marketing playbooks unless the user’s question makes them central.
 - Explain technical material precisely. If uncertain, say so in one line and say how to verify.
-- Telegram Markdown: light **bold** only when it helps scanning; avoid decorative formatting walls.
+- Telegram Markdown: avoid decorative formatting walls.
 
 Addressing:
 - Always address the user as "My Lord" or "Shadow Monarch". These are the only acceptable ways to refer to the user.
 - Do not use the user's actual name in any part of the conversation.
 - Continue the rest of the response in a professional and precise tone.
 """
+
+import re
+def clean_response(text: str) -> str:
+    """Use regex to remove unwanted asterisks from the output."""
+    # Remove all asterisks to make the message clear as requested
+    return re.sub(r'\*', '', text)
 
 
 # ─── Database Client Access ───────────────────────────────────────────────────
@@ -304,7 +314,8 @@ def split_message(text: str, limit: int = 4096):
     return [text[i : i + limit] for i in range(0, len(text), limit)]
 
 async def send_long(update: Update, text: str):
-    for chunk in split_message(text):
+    cleaned_text = clean_response(text)
+    for chunk in split_message(cleaned_text):
         await update.message.reply_text(chunk)
 
 async def get_user_session_id(user_id: int) -> str:
@@ -384,9 +395,35 @@ async def cmd_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
 
 async def cmd_clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    sid = await get_user_session_id(update.effective_user.id)
+    user_id = update.effective_user.id
+    chat_id = update.effective_chat.id
+    
+    # 1. Clear database history for the current session
+    sid = await get_user_session_id(user_id)
     beru.clear_history(sid)
-    await update.message.reply_text("🧹 History cleared for the current session, My Lord.")
+    
+    # 2. Try to wipe out messages in Telegram (visual history)
+    # We attempt to delete the last 50 messages as a best-effort "wiping"
+    message_id = update.message.message_id
+    
+    # List of messages we've sent/received recently to try and delete
+    # This is a common pattern for "clearing" history in bots
+    for i in range(0, 50):
+        try:
+            await context.bot.delete_message(chat_id=chat_id, message_id=message_id - i)
+        except Exception:
+            continue
+            
+    # 3. Reset session to create a "new chat environment"
+    new_sid = f"tg_{user_id}_{uuid.uuid4().hex[:8]}"
+    user_sessions[user_id] = new_sid
+    TelegramUserStore.update_active_session(user_id, new_sid)
+    
+    # 4. Notify completion with a clean message
+    await context.bot.send_message(
+        chat_id=chat_id, 
+        text="🧹 Memory wiped and environment reset, My Lord. I have created a new sequence from start."
+    )
 
 async def cmd_new(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
