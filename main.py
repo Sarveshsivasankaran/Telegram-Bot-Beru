@@ -193,7 +193,12 @@ class BeruBot:
                 timeout=Config.REQUEST_TIMEOUT,
             )
         else:
-            self.llm = Ollama(model=Config.OLLAMA_MODEL, base_url=Config.OLLAMA_HOST)
+            headers = {"Authorization": f"Bearer {Config.OLLAMA_API_KEY}"} if Config.OLLAMA_API_KEY else None
+            self.llm = Ollama(
+                model=Config.OLLAMA_MODEL, 
+                base_url=Config.OLLAMA_HOST,
+                headers=headers
+            )
         
         self.search_tool = DuckDuckGoSearchRun()
 
@@ -232,7 +237,12 @@ class BeruBot:
         llm = self.llm
         if model_name:
             if not "gpt" in model_name.lower() or not Config.OPENAI_API_KEY:
-                llm = Ollama(model=model_name, base_url=Config.OLLAMA_HOST)
+                headers = {"Authorization": f"Bearer {Config.OLLAMA_API_KEY}"} if Config.OLLAMA_API_KEY else None
+                llm = Ollama(
+                    model=model_name, 
+                    base_url=Config.OLLAMA_HOST,
+                    headers=headers
+                )
             else:
                 llm = ChatOpenAI(
                     model=model_name,
