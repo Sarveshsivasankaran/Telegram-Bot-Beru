@@ -381,9 +381,10 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("🤖 GPT-4o Mini", callback_data="model:gpt-4o-mini")],
-        [InlineKeyboardButton("🚀 GPT-4o", callback_data="model:gpt-4o")],
-        [InlineKeyboardButton("💡 GPT-3.5 Turbo", callback_data="model:gpt-3.5-turbo")],
+        [InlineKeyboardButton("💎 Gemma 4 (31B)", callback_data="model:gemma4:31b")],
+        [InlineKeyboardButton("🐉 Qwen 3.6 (35B)", callback_data="model:qwen3.6:35b")],
+        [InlineKeyboardButton("🌟 Ministral 3 (8B)", callback_data="model:ministral-3:8b")],
+        [InlineKeyboardButton("👁️ GLM OCR", callback_data="model:glm-ocr:latest")],
         [InlineKeyboardButton("✨ Restore Default", callback_data="model:default")],
     ]
     await update.message.reply_text("⚙️ *Select your AI model:*", reply_markup=InlineKeyboardMarkup(keyboard), parse_mode=ParseMode.MARKDOWN)
