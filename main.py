@@ -381,11 +381,7 @@ async def cmd_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def cmd_model(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
-        [InlineKeyboardButton("♊ Gemini 3 Flash", callback_data="model:gemini-3-flash-preview:latest")],
         [InlineKeyboardButton("💎 Gemma 4 (31B)", callback_data="model:gemma4:31b")],
-        [InlineKeyboardButton("⚡ Nemotron 3 Super", callback_data="model:nemotron-3-super:latest")],
-        [InlineKeyboardButton("🧠 DeepSeek OCR", callback_data="model:deepseek-ocr:latest")],
-        [InlineKeyboardButton("🏥 MedGemma 1.5", callback_data="model:medgemma1.5:latest")],
         [InlineKeyboardButton("🌟 Ministral 3 (8B)", callback_data="model:ministral-3:8b")],
         [InlineKeyboardButton("✨ Restore Default", callback_data="model:default")],
     ]
